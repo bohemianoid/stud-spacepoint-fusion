@@ -1,0 +1,133 @@
+import pywinusb.hid as hid
+from time import sleep
+import math
+from pymouse import PyMouse
+import msvcrt
+
+class SpacePoint :
+
+    def __init__( self ) :
+        self._vendor_id  = 0x20ff
+        self._product_id = 0x0100
+        self._hid_mode   = 'Quaternions' # 'Raw Interface' or 'Quaternions'
+        self._hid        = None
+        self._frequency  = 62.5
+        self.mag         = None
+        self.acc         = None
+        self.gyr         = None
+        self.buttons     = None
+        self.quat        = None
+        self.grav        = None
+        self.yaw         = None
+        self.pitch       = None
+        self.roll        = None
+
+        self._mouse      = PyMouse()
+        #self.qx0         = 0
+        #self.qy0         = 0
+
+        self.find()
+        self.update()
+
+    def find( self ) :
+        device_filter = hid.HidDeviceFilter( vendor_id = self._vendor_id,
+                        product_id = self._product_id )
+
+        all_devices = device_filter.get_devices()
+
+        if not all_devices :
+            print( 'Device not found.' )
+
+        else:
+            for device in all_devices :
+                if device.product_name == self._hid_mode :
+                    self._hid = device
+
+    def update( self ) :
+        if self._hid :
+            try:
+                self._hid.open()
+
+                if self._hid_mode == 'Raw Interface' :
+                    self._hid.set_raw_data_handler( self.raw_handler )
+                else :
+                    self._hid.set_raw_data_handler( self.quat_handler )
+
+                print( 'Device is running...' )
+
+                while self._hid.is_plugged() :
+                    #self.pointer()
+                    sleep( 1/float( self._frequency ) )
+                return
+
+            except KeyboardInterrupt :
+                return
+
+            finally:
+                self._hid.close()
+                print( 'Device stopped.' )
+
+    def raw_handler( self, data ) :
+        m0 = data[ 1 ]|( data[ 2 ]<<8 )
+        m1 = data[ 3 ]|( data[ 4 ]<<8 )
+        m2 = data[ 5 ]|( data[ 6 ]<<8 )
+        self.mag = ( m0, m1, m2 )
+
+        a0 = data[ 7 ]|( data[ 8 ]<<8 )
+        a1 = data[ 9 ]|( data[ 10 ]<<8 )
+        a2 = data[ 11 ]|( data[ 12 ]<<8 )
+        self.acc = ( a0, a1, a2 )
+
+        g0 = data[ 13 ]|( data[ 14 ]<<8 )
+        g1 = data[ 15 ]|( data[ 16 ]<<8 )
+        g2 = data[ 17 ]|( data[ 18 ]<<8 )
+        self.gyr = ( g0, g1, g2 )
+
+        b0 = data[ 19 ]&1;
+        b1 = ( data[ 19 ]&2 )>>1;
+        self.buttons = ( b0, b1 )
+
+    def quat_handler( self, data ) :
+        g1 = ( ( data[ 1 ]|( data[ 2 ] )<<8 )-32768 )*6.0/32768.0
+        g2 = ( ( data[ 3 ]|( data[ 4 ] )<<8 )-32768 )*6.0/32768.0
+        g3 = ( ( data[ 5 ]|( data[ 6 ] )<<8 )-32768 )*6.0/32768.0
+        self.grav = ( g1 , g2 , g3 )
+
+        q0 = ( ( data[ 7 ]|( data[ 8 ]<<8 ) )-32768 )/32768.0
+        q1 = ( ( data[ 9 ]|( data[ 10 ]<<8 ) )-32768 )/32768.0
+        q2 = ( ( data[ 11 ]|( data[ 12 ]<<8 ) )-32768 )/32768.0
+        q3 = ( ( data[ 13 ]|( data[ 14 ]<<8 ) )-32768 )/32768.0
+        self.quat = ( q0 , q1 , q2 , q3 )
+
+        #b0 = data[ 15 ]&1;
+        #b1 = ( data[ 15 ]&2 )>>1;
+        #self.buttons = ( b0 , b1 )
+
+        self.euler()
+
+    def euler( self ) :
+        sqx = self.quat[ 0 ]*self.quat[ 0 ]
+        sqy = self.quat[ 1 ]*self.quat[ 1 ]
+        sqz = self.quat[ 2 ]*self.quat[ 2 ]
+        sqw = self.quat[ 3 ]*self.quat[ 3 ]
+
+        self.yaw   = ( 180/math.pi )*math.atan2( 2.0*( self.quat[ 0 ]*self.quat[ 1 ]+
+                     self.quat[ 2 ]*self.quat[ 3 ] ), ( sqx-sqy-sqz+sqw ) )
+        self.pitch = ( 180/math.pi )*math.asin( -2.0*( self.quat[ 0 ]*self.quat[ 2 ]-
+                     self.quat[ 1 ]*self.quat[ 3 ] ) )
+        self.roll  = ( 180/math.pi )*math.atan2( 2.0*( self.quat[ 1 ]*self.quat[ 2 ]+
+                     self.quat[ 0 ]*self.quat[ 3 ] ), ( -sqx-sqy+sqz+sqw ) )
+
+    #def pointer( self ) :
+    #    if self.quat :
+    #        print( '{0:0.3f} {1:0.3f}' ).format( self.quat[ 1 ]-self.qx0,
+    #               self.quat[ 2 ]-self.qy0 )
+
+    #        if msvcrt.kbhit() :
+    #            if msvcrt.getch() == 'g' :
+    #                self.qx0 = self.quat[ 1 ]
+    #                self.qy0 = self.quat[ 2 ]
+
+if __name__ == '__main__' :
+    #hid.core.show_hids()
+    fusion = SpacePoint()
