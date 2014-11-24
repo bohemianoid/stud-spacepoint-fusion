@@ -11,7 +11,7 @@ class SpacePoint :
         self._product_id = 0x0100
         self._hid_mode   = 'Quaternions' # 'Raw Interface' or 'Quaternions'
         self._hid        = None
-        self._frequency  = 62.5
+        self._frequency  = 125
         self.mag         = None
         self.acc         = None
         self.gyr         = None
@@ -23,8 +23,10 @@ class SpacePoint :
         self.roll        = None
 
         self._mouse      = PyMouse()
-        #self.qx0         = 0
-        #self.qy0         = 0
+        self.yaw0        = 0
+        self.pitch0      = 0
+
+        self._x_dim, self._y_dim = self._mouse.screen_size()
 
         self.find()
         self.update()
@@ -54,9 +56,11 @@ class SpacePoint :
                     self._hid.set_raw_data_handler( self.quat_handler )
 
                 print( 'Device is running...' )
+                print( '>> [Space]  to calibrate' )
+                print( '>> [Ctrl+c] to stop' )
 
                 while self._hid.is_plugged() :
-                    #self.pointer()
+                    self.pointer()
                     sleep( 1/float( self._frequency ) )
                 return
 
@@ -118,15 +122,15 @@ class SpacePoint :
         self.roll  = ( 180/math.pi )*math.atan2( 2.0*( self.quat[ 1 ]*self.quat[ 2 ]+
                      self.quat[ 0 ]*self.quat[ 3 ] ), ( -sqx-sqy+sqz+sqw ) )
 
-    #def pointer( self ) :
-    #    if self.quat :
-    #        print( '{0:0.3f} {1:0.3f}' ).format( self.quat[ 1 ]-self.qx0,
-    #               self.quat[ 2 ]-self.qy0 )
+    def pointer( self ) :
+        if self.yaw and self.pitch :
+            self._mouse.move( int( self._x_dim/2+self.yaw-self.yaw0 ),
+                              int( self._y_dim/2-self.pitch-self.pitch0 ) )
 
-    #        if msvcrt.kbhit() :
-    #            if msvcrt.getch() == 'g' :
-    #                self.qx0 = self.quat[ 1 ]
-    #                self.qy0 = self.quat[ 2 ]
+            if msvcrt.kbhit() :
+                if ord( msvcrt.getch() ) == 32 :
+                    self.yaw0   = self.yaw
+                    self.pitch0 = self.pitch
 
 if __name__ == '__main__' :
     #hid.core.show_hids()
