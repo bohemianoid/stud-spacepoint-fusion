@@ -9,8 +9,8 @@ class SpacePoint :
     def __init__( self ) :
         self._vendor_id  = 0x20ff
         self._product_id = 0x0100
-        self._hid_mode   = 'Quaternions' # 'Raw Interface' or 'Quaternions'
-        self._hid        = None
+        self._hid_raw    = None
+        self._hid_quat   = None
         self._frequency  = 125
         self.mag         = None
         self.acc         = None
@@ -28,38 +28,39 @@ class SpacePoint :
 
         self._x_dim, self._y_dim = self._mouse.screen_size()
 
-        self.find()
+        self.start()
         self.update()
 
-    def find( self ) :
+    def start( self ) :
         device_filter = hid.HidDeviceFilter( vendor_id = self._vendor_id,
                         product_id = self._product_id )
 
-        all_devices = device_filter.get_devices()
+        interfaces = device_filter.get_devices()
 
-        if not all_devices :
+        if not interfaces :
             print( 'Device not found.' )
 
         else:
-            for device in all_devices :
-                if device.product_name == self._hid_mode :
-                    self._hid = device
+            for interface in interfaces :
+                if interface.product_name == 'Raw Interface' :
+                    self._hid_raw = interface
+                if interface.product_name == 'Quaternions' :
+                    self._hid_quat = interface
 
     def update( self ) :
-        if self._hid :
+        if self._hid_raw and self._hid_quat :
             try:
-                self._hid.open()
+                self._hid_raw.open()
+                self._hid_raw.set_raw_data_handler( self.raw_handler )
 
-                if self._hid_mode == 'Raw Interface' :
-                    self._hid.set_raw_data_handler( self.raw_handler )
-                else :
-                    self._hid.set_raw_data_handler( self.quat_handler )
+                self._hid_quat.open()
+                self._hid_quat.set_raw_data_handler( self.quat_handler )
 
                 print( 'Device is running...' )
                 print( '>> [Space]  to calibrate' )
                 print( '>> [Ctrl+c] to stop' )
 
-                while self._hid.is_plugged() :
+                while self._hid_raw.is_plugged() and self._hid_quat.is_plugged() :
                     self.pointer()
                     sleep( 1/float( self._frequency ) )
                 return
@@ -68,7 +69,8 @@ class SpacePoint :
                 return
 
             finally:
-                self._hid.close()
+                self._hid_raw.close()
+                self._hid_quat.close()
                 print( 'Device stopped.' )
 
     def raw_handler( self, data ) :
