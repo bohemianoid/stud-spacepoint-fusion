@@ -137,9 +137,6 @@ class SpacePoint :
             self.euler_old = self.euler
 
         if self.buttons :
-            if not self.buttons_old :
-                self.buttons_old = self.buttons
-
             x, y = self._mouse.position()
 
             if self.buttons[ 0 ] == 1 :
