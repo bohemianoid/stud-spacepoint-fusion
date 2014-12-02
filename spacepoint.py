@@ -18,20 +18,16 @@ class SpacePoint :
         self.buttons     = None
         self.quat        = None
         self.grav        = None
-        self.yaw         = None
-        self.pitch       = None
-        self.roll        = None
+        self.euler       = None
 
         self._mouse      = PyMouse()
-        self.yaw0        = 0
-        self.pitch0      = 0
+        self._screen     = self._mouse.screen_size()
+        self.euler_old   = None
 
-        self._x_dim, self._y_dim = self._mouse.screen_size()
-
-        self.start()
+        self.find()
         self.update()
 
-    def start( self ) :
+    def find( self ) :
         device_filter = hid.HidDeviceFilter( vendor_id = self._vendor_id,
                         product_id = self._product_id )
 
@@ -57,7 +53,6 @@ class SpacePoint :
                 self._hid_quat.set_raw_data_handler( self.quat_handler )
 
                 print( 'Device is running...' )
-                print( '>> [Space]  to calibrate' )
                 print( '>> [Ctrl+c] to stop' )
 
                 while self._hid_raw.is_plugged() and self._hid_quat.is_plugged() :
@@ -105,34 +100,54 @@ class SpacePoint :
         q3 = ( ( data[ 13 ]|( data[ 14 ]<<8 ) )-32768 )/32768.0
         self.quat = ( q0 , q1 , q2 , q3 )
 
+        sq0 = q0*q0
+        sq1 = q1*q1
+        sq2 = q2*q2
+        sq3 = q3*q3
+
+        yaw   = ( 180/math.pi )*math.atan2( 2.0*( q0*q1+q2*q3 ),
+                  ( sq0-sq1-sq2+sq3 ) )
+        pitch = ( 180/math.pi )*math.asin( -2.0*( q0*q2-q1*q3 ) )
+        roll  = ( 180/math.pi )*math.atan2( 2.0*( q1*q2+q0*q3 ),
+                  ( -sq0-sq1+sq2+sq3 ) )
+        self.euler = ( yaw, pitch, roll )
+
         #b0 = data[ 15 ]&1;
         #b1 = ( data[ 15 ]&2 )>>1;
         #self.buttons = ( b0 , b1 )
 
-        self.euler()
-
-    def euler( self ) :
-        sqx = self.quat[ 0 ]*self.quat[ 0 ]
-        sqy = self.quat[ 1 ]*self.quat[ 1 ]
-        sqz = self.quat[ 2 ]*self.quat[ 2 ]
-        sqw = self.quat[ 3 ]*self.quat[ 3 ]
-
-        self.yaw   = ( 180/math.pi )*math.atan2( 2.0*( self.quat[ 0 ]*self.quat[ 1 ]+
-                     self.quat[ 2 ]*self.quat[ 3 ] ), ( sqx-sqy-sqz+sqw ) )
-        self.pitch = ( 180/math.pi )*math.asin( -2.0*( self.quat[ 0 ]*self.quat[ 2 ]-
-                     self.quat[ 1 ]*self.quat[ 3 ] ) )
-        self.roll  = ( 180/math.pi )*math.atan2( 2.0*( self.quat[ 1 ]*self.quat[ 2 ]+
-                     self.quat[ 0 ]*self.quat[ 3 ] ), ( -sqx-sqy+sqz+sqw ) )
-
     def pointer( self ) :
-        if self.yaw and self.pitch :
-            self._mouse.move( int( self._x_dim/2+self.yaw-self.yaw0 ),
-                              int( self._y_dim/2-self.pitch-self.pitch0 ) )
+        if self.euler :
+            if not self.euler_old :
+                self.euler_old = self.euler
 
-            if msvcrt.kbhit() :
-                if ord( msvcrt.getch() ) == 32 :
-                    self.yaw0   = self.yaw
-                    self.pitch0 = self.pitch
+            dyaw = self.euler[ 0 ]-self.euler_old[ 0 ]
+
+            x, y = self._mouse.position()
+
+            if abs( dyaw ) > 0.4 and abs( dyaw ) < 270 :
+                dx = int( 20*dyaw )
+
+            else :
+                dx = 0
+
+            dy = int( 20*( self.euler[ 1 ]-self.euler_old[ 1 ] ) )
+
+            self._mouse.move( x+dx, y-dy )
+
+            self.euler_old = self.euler
+
+        if self.buttons :
+            x, y = self._mouse.position()
+
+            if self.buttons[ 0 ] == 1 :
+                self._mouse.click( x, y, 1 )
+
+            if self.buttons[ 1 ] == 1 :
+                self._mouse.click( x, y, 2 )
+
+            if sum( self.buttons ) == 2 :
+                self._mouse.move( self._screen[ 0 ]/2, self._screen[ 1 ]/2 )
 
 if __name__ == '__main__' :
     #hid.core.show_hids()
