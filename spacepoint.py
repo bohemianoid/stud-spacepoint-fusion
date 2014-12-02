@@ -2,7 +2,6 @@ import pywinusb.hid as hid
 from time import sleep
 import math
 from pymouse import PyMouse
-import msvcrt
 
 class SpacePoint :
 
@@ -141,10 +140,14 @@ class SpacePoint :
             x, y = self._mouse.position()
 
             if self.buttons[ 0 ] == 1 :
-                self._mouse.click( x, y, 1 )
+                self._mouse.press( x, y, 1 )
+            else :
+                self._mouse.release( x, y, 1 )
 
             if self.buttons[ 1 ] == 1 :
-                self._mouse.click( x, y, 2 )
+                self._mouse.press( x, y, 2 )
+            else :
+                self._mouse.release( x, y, 2 )
 
             if sum( self.buttons ) == 2 :
                 self._mouse.move( self._screen[ 0 ]/2, self._screen[ 1 ]/2 )
