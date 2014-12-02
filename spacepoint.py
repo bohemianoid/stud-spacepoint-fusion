@@ -22,6 +22,7 @@ class SpacePoint :
         self._mouse      = PyMouse()
         self._screen     = self._mouse.screen_size()
         self.euler_old   = None
+        self.buttons_old = None
 
         self.find()
         self.update()
@@ -137,16 +138,19 @@ class SpacePoint :
             self.euler_old = self.euler
 
         if self.buttons :
+            if not self.buttons_old :
+                self.buttons_old = self.buttons
+
             x, y = self._mouse.position()
 
-            if self.buttons[ 0 ] == 1 :
+            if self.buttons[ 0 ] == 1 and self.buttons_old[ 0 ] == 0 :
                 self._mouse.press( x, y, 1 )
-            else :
+            elif self.buttons[ 0 ] == 0 and self.buttons_old[ 0 ] == 1 :
                 self._mouse.release( x, y, 1 )
 
-            if self.buttons[ 1 ] == 1 :
+            if self.buttons[ 1 ] == 1 and self.buttons_old[ 1 ] == 0 :
                 self._mouse.press( x, y, 2 )
-            else :
+            elif self.buttons[ 1 ] == 0 and self.buttons_old[ 1 ] == 1 :
                 self._mouse.release( x, y, 2 )
 
             if sum( self.buttons ) == 2 :
