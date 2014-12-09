@@ -1,7 +1,7 @@
 The MIT License (MIT)
 
-Copyright (c) 2014 Yanick Bertrand
-                   Melvin Mathis
+Copyright (c) 2014 Yanick Bertrand,
+                   Melvin Mathis,
                    Simon Roth
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
