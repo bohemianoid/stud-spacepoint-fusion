@@ -8,9 +8,13 @@ To run this command line tool you need to [properly install Python](http://docs.
 
 1. Create a virtual environment and activate it
 ```
-PS > cd my_project_folder
-PS > virtualenv venv
-PS > venv\Scripts\activate
+PS C:\> cd my_project_folder
+PS my_project_folder\> virtualenv venv
+PS my_project_folder\> venv\Scripts\activate
 ```
+
+If using Powershell, the `activate` script is subject to the execution policies on the system. By default on Windows 7, the system’s excution policy is set to `Restricted`, meaning no scripts like the `activate` script are allowed to be executed. In order to use the script, you have to relax your system’s execution policy.
+
+```PS C:\> Set-ExecutionPolicy AllSigned```
 
 ## External Resources
