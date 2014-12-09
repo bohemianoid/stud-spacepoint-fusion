@@ -34,4 +34,9 @@ PS local\repository> venv\Scripts\activate
 
  ```(venv) PS local\repository> deactivate```
 
-## External Resources
+## References
+
+- [SpacePoint Scout User Manual](http://www.pnicorp.com/system/files/SpacePoint%20Scout%20User%20Manual%20r03.pdf)
+- [User Manual SpacePoint Fusion](http://web.sensor-ic.com:8000/ZLXIAZAI/PNI/SpacePoint_Fusion_User_Manual_r1.pdf)
+- [Easy Absolute Orientation: PNI SpacePoint Fusion in Python](http://eclecti.cc/hardware/easy-absolute-orientation-pni-spacepoint-fusion-in-python) 
+- [pywinusb.hid](https://github.com/rene-aguirre/pywinusb)
